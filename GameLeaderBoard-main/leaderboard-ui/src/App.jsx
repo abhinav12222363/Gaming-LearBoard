@@ -22,7 +22,7 @@ function App() {
       const res = await axios.get(`http://localhost:8000/api/leaderboard/rank/${userId}`);
       setRankData(res.data);
       setError('');
-    } catch (err) {
+    } catch {
       setError('User not found');
       setRankData(null);
     }

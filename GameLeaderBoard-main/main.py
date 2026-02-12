@@ -55,6 +55,9 @@ def submit_score(data: ScoreSubmission):
     try:
         crud.submit_score(db, data.user_id, data.score)
         return {"message": "Score submitted successfully"}
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

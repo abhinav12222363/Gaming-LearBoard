@@ -17,3 +17,9 @@ def cache_get(key):
 
 def cache_delete(key):
     r.delete(key)
+
+
+def cache_delete_pattern(pattern: str):
+    keys = r.keys(pattern)
+    if keys:
+        r.delete(*keys)

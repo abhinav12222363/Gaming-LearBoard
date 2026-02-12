@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from models import GameSession, Leaderboard, User
 from sqlalchemy import text
+from fastapi import HTTPException
 from schemas import PlayerRank
 from cache import (
     cache_delete,
@@ -8,7 +9,8 @@ from cache import (
     cache_set,
     LEADERBOARD_TOP_CACHE_KEY,
     PLAYER_RANK_CACHE_KEY_PREFIX,
-    cache_delete_pattern,
+    bump_rank_cache_version,
+    get_rank_cache_version,
 )
 
 LEADERBOARD_CACHE_TTL_SECONDS = 30
@@ -23,7 +25,7 @@ def recalculate_leaderboard_ranks(db: Session, use_dense_rank: bool = False):
             WITH ranked AS (
                 SELECT
                     id,
-                    {rank_func}() OVER (ORDER BY total_score DESC) AS computed_rank
+                    {rank_func}() OVER (ORDER BY total_score DESC, user_id ASC) AS computed_rank
                 FROM leaderboard
             )
             UPDATE leaderboard AS lb
@@ -41,9 +43,12 @@ def submit_score(db: Session, user_id: int, score: int):
     1) Ensure user exists.
     2) Insert raw game session for auditability.
     3) Update cumulative leaderboard score.
-    4) Recalculate rank column using SQL window functions.
-    5) Invalidate affected caches after commit.
+    4) Shift only impacted ranks (avoid full leaderboard recomputation per write).
+    5) Invalidate top and user-rank caches after commit.
     """
+    if score < 0:
+        raise HTTPException(status_code=400, detail="Score must be non-negative")
+
     with db.begin():
         user = db.query(User).filter_by(id=user_id).first()
         if not user:
@@ -51,17 +56,75 @@ def submit_score(db: Session, user_id: int, score: int):
 
         db.add(GameSession(user_id=user_id, score=score, game_mode="solo"))
 
-        leaderboard = db.query(Leaderboard).filter_by(user_id=user_id).with_for_update().first()
+        leaderboard = (
+            db.query(Leaderboard)
+            .filter_by(user_id=user_id)
+            .with_for_update()
+            .first()
+        )
+
+        old_total_score = leaderboard.total_score if leaderboard else 0
+        new_total_score = old_total_score + score
+
         if leaderboard:
-            leaderboard.total_score += score
+            leaderboard.total_score = new_total_score
         else:
-            db.add(Leaderboard(user_id=user_id, total_score=score, rank=0))
+            leaderboard = Leaderboard(user_id=user_id, total_score=new_total_score, rank=1)
+            db.add(leaderboard)
+            db.flush()
 
-        recalculate_leaderboard_ranks(db)
+        new_rank = db.execute(
+            text(
+                """
+                SELECT COALESCE(COUNT(*), 0) + 1
+                FROM leaderboard
+                WHERE total_score > :new_total_score
+                """
+            ),
+            {"new_total_score": new_total_score},
+        ).scalar_one()
 
-    cache_delete(f"{PLAYER_RANK_CACHE_KEY_PREFIX}{user_id}")
-    cache_delete_pattern(f"{PLAYER_RANK_CACHE_KEY_PREFIX}*")
+        if old_total_score == 0 and leaderboard.rank == 1:
+            old_rank = db.execute(
+                text("SELECT COALESCE(MAX(rank), 0) + 1 FROM leaderboard WHERE user_id != :user_id"),
+                {"user_id": user_id},
+            ).scalar_one()
+        else:
+            old_rank = leaderboard.rank if leaderboard.rank else (
+                db.execute(
+                    text(
+                        """
+                        SELECT COALESCE(COUNT(*), 0) + 1
+                        FROM leaderboard
+                        WHERE total_score > :old_total_score
+                        """
+                    ),
+                    {"old_total_score": old_total_score},
+                ).scalar_one()
+            )
+
+        if new_rank < old_rank:
+            db.execute(
+                text(
+                    """
+                    UPDATE leaderboard
+                    SET rank = rank + 1
+                    WHERE rank >= :new_rank
+                      AND rank < :old_rank
+                      AND user_id != :user_id
+                    """
+                ),
+                {
+                    "new_rank": new_rank,
+                    "old_rank": old_rank,
+                    "user_id": user_id,
+                },
+            )
+
+        leaderboard.rank = new_rank
+
     cache_delete(LEADERBOARD_TOP_CACHE_KEY)
+    bump_rank_cache_version()
 
 
 def get_top_leaderboard(db: Session):
@@ -89,7 +152,8 @@ def get_top_leaderboard(db: Session):
 
 
 def get_player_rank(db: Session, user_id: int):
-    cache_key = f"{PLAYER_RANK_CACHE_KEY_PREFIX}{user_id}"
+    version = get_rank_cache_version()
+    cache_key = f"{PLAYER_RANK_CACHE_KEY_PREFIX}{user_id}:{version}"
     cached = cache_get(cache_key)
     if cached is not None:
         return PlayerRank(**cached)

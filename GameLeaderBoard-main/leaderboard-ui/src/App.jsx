@@ -80,9 +80,9 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {leaderboard.map((player, index) => (
+          {leaderboard.map((player) => (
             <tr key={player.user_id}>
-              <td>{index + 1}</td>
+              <td>{player.rank}</td>
               <td>{player.user_id}</td>
               <td>{player.total_score}</td>
             </tr>

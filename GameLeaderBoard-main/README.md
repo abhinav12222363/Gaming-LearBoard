@@ -220,3 +220,45 @@ Access dashboard: [https://one.newrelic.com/](https://one.newrelic.com/)
 | Bootstrap UI            | ✅ Done |
 
 ---
+
+
+## 🎯 Interview Alignment Notes (Important)
+
+### 1) API path parity
+The backend exposes the exact assignment paths:
+
+- `POST /api/leaderboard/submit`
+- `GET /api/leaderboard/top`
+- `GET /api/leaderboard/rank/{id}`
+
+### 2) Ranking strategy: **SUM vs AVG**
+This implementation intentionally uses **SUM(score)** semantics via `leaderboard.total_score` and rank ordering by `total_score DESC`.
+
+Why SUM here:
+- It matches the assignment phrase “highest total score”.
+- It rewards sustained performance across many sessions.
+- It is efficient for write-time incremental updates (`total_score += score`) without full re-aggregation.
+
+When AVG would be better:
+- If product requirements prioritize “consistency per session” over total accumulation.
+- If users play very different numbers of rounds and fairness needs normalization.
+
+### 3) Cache invalidation strategy
+Current behavior follows a **cache-aside/read-through** style:
+- Reads (`/top`, `/rank/{id}`): check Redis first; on miss, query DB and set cache.
+- Writes (`/submit`): commit DB transaction first, then invalidate affected keys.
+
+Design details:
+- TTL is 30 seconds for top leaderboard and player rank keys.
+- Write-time invalidation keeps stale windows short and bounded by the next read + TTL.
+- Under concurrent writes, DB remains source of truth; cache is eventually consistent and self-heals on misses.
+
+### 4) Atomicity and race-condition handling
+`submit_score` runs in a single DB transaction (`with db.begin():`) so user creation, session insert, and leaderboard update either all commit or all roll back.
+
+To reduce lost updates under concurrent writes, leaderboard rows are read with `FOR UPDATE` before applying `total_score += score`, ensuring serial updates for the same player row.
+
+This gives:
+- Atomic writes for a submit operation.
+- Consistent score accumulation under concurrency.
+- Deterministic rank recomputation because rank queries always read committed totals.

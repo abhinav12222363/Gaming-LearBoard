@@ -6,6 +6,13 @@ A fast, scalable leaderboard system for tracking player scores in real-time. Bui
 
 ## 🚀 Tech Stack
 
+## 📘 Interview Submission
+
+For the second-round review (HLD/LLD, scalability analysis, implemented vs skipped items), see:
+
+- `INTERVIEW_SUBMISSION.md`
+
+
 | Layer       | Tool/Library                         |
 | ----------- | ------------------------------------ |
 | Backend API | FastAPI                              |

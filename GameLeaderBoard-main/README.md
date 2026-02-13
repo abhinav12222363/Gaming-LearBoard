@@ -197,9 +197,11 @@ This app is integrated with **New Relic APM**:
 * Logs forwarded to New Relic (optional)
 
 Access dashboard: [https://one.newrelic.com/](https://one.newrelic.com/)
-<img width="1710" alt="Screenshot 2025-07-03 at 10 22 40 PM" src="https://github.com/user-attachments/assets/11b7605a-bc7f-4330-a490-a0e475f2895c" />
-<img width="1710" alt="Screenshot 2025-07-03 at 10 22 55 PM" src="https://github.com/user-attachments/assets/e2292be9-39ff-40cb-b85f-9bb128d8688f" />
-<img width="1710" alt="Screenshot 2025-07-03 at 10 23 11 PM" src="https://github.com/user-attachments/assets/a8610961-daa6-490d-8bd9-0859b266eba9" />
+![WhatsApp Image 2026-02-13 at 1 51 45 PM](https://github.com/user-attachments/assets/50cf2636-fd9c-42cb-9f9a-d364fbdb3e3b)
+![WhatsApp Image 2026-02-13 at 1 51 16 PM](https://github.com/user-attachments/assets/5e0a1827-ff53-4289-8bb3-a2bd19487796)
+![WhatsApp Image 2026-02-13 at 1 53 07 PM](https://github.com/user-attachments/assets/fc6af298-629b-4422-bfce-1136fb8f4de2)
+![WhatsApp Image 2026-02-13 at 1 51 02 PM](https://github.com/user-attachments/assets/119b13b5-8550-4dc9-a6b4-53d4f0640fda)
+
 
 
 ---

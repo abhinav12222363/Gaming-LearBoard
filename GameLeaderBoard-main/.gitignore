@@ -1,2 +1,19 @@
-lbenv/
-server.log
+# Python
+venv/
+__pycache__/
+*.pyc
+*.log
+
+# Environment variables
+.env
+
+# New Relic
+newrelic.ini
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,3 +1,5 @@
+import newrelic.agent
+newrelic.agent.initialize("newrelic.ini")
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal

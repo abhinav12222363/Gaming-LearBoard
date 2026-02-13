@@ -299,7 +299,7 @@ This gives:
 A complete working demo of the Gaming Leaderboard system (backend APIs, frontend UI, Redis caching, and New Relic monitoring) is available here:
 
 🔗 **Demo Link:**  
-https://drive.google.com/file/d/1nd-Fs5W_3vmSHEPYNpDr9kFl9Zze6hWa/view?usp=drivesdk
+https://drive.google.com/file/d/1OSmKUAl4YF0HF-u1dVVmHwdUIvOzUWvV/view?usp=sharing
 
 The demo showcases:
 - Score submission flow

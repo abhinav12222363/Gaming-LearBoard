@@ -97,18 +97,38 @@ The script:
 ## 📂 Project Structure
 
 ```
-leaderboard/
-├── main.py             # FastAPI entry point
-├── database.py         # PostgreSQL DB connection
-├── models.py           # SQLAlchemy models
-├── crud.py             # Business logic
-├── schemas.py          # Pydantic request/response models
-├── utils.py            # Redis utilities
-├── tests/              # Pytest test cases
-│   └── test_main.py
-├── server.log          # Log output
-├── newrelic.ini        # New Relic config
-└── requirements.txt
+Gaming-LearBoard/
+└── GameLeaderBoard-main/
+    ├── leaderboard-ui/              # Frontend (React + Vite)
+    │   ├── public/
+    │   ├── src/
+    │   │   ├── App.jsx
+    │   │   ├── main.jsx
+    │   │   └── components/
+    │   ├── index.html
+    │   ├── package.json
+    │   ├── package-lock.json
+    │   ├── vite.config.js
+    │   └── eslint.config.js
+    │
+    ├── tests/                        # Backend unit tests
+    │   └── test_main.py
+    │
+    ├── main.py                      # FastAPI entry point
+    ├── database.py                  # PostgreSQL connection & session
+    ├── models.py                    # SQLAlchemy models
+    ├── schemas.py                   # Pydantic request/response schemas
+    ├── crud.py                      # Business logic (score submit, rank calc)
+    ├── cache.py                     # Redis caching utilities
+    │
+    ├── newrelic.ini                 # New Relic APM configuration
+    ├── requirements.txt             # Python dependencies
+    ├── REQUIREMENTS_AUDIT.md        # Dependency audit notes
+    ├── INTERVIEW_SUBMISSION.md      # HLD/LLD + design decisions
+    ├── README.md                    # Project documentation
+    ├── .gitignore
+    └── .env                         # Environment variables (NOT committed)
+
 ```
 
 ---

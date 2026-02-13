@@ -1,9 +1,8 @@
-
 🏆 Gaming Leaderboard System
 
 A scalable, real-time Gaming Leaderboard built as part of a take-home assignment, designed to handle high traffic, large datasets, and provide full observability using New Relic.
 
-This system allows players to submit scores, view top rankings, and check individual ranks with low latency and strong consistency guarantees.
+The system allows players to submit scores, view top rankings, and check individual ranks with low latency, atomic writes, and strong consistency guarantees.
 
 🚀 Tech Stack
 Layer	Technology
@@ -15,22 +14,33 @@ Monitoring	New Relic APM
 Logging	Python logging
 Testing	Pytest
 Deployment	Localhost (Docker optional)
+
 📌 Assignment Requirements Coverage
 
 ✅ Submit Score API
-✅ Top 10 Leaderboard API
+
+✅ Top-10 Leaderboard API
+
 ✅ Player Rank API
+
 ✅ Large dataset handling (1M+ users)
+
 ✅ Concurrency-safe writes
+
 ✅ Redis caching
+
 ✅ New Relic monitoring
+
 ✅ Frontend with live updates
 
-🔗 API Endpoints
 Method	Endpoint	Description
 POST	/api/leaderboard/submit	Submit a player score
-GET	/api/leaderboard/top	Get top 10 players
+GET	/api/leaderboard/top	Get top-10 players
 GET	/api/leaderboard/rank/{user_id}	Get rank of a user
+
+Swagger UI available at:
+👉 http://127.0.0.1:8000/docs
+
 🗄️ Database Schema
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -56,6 +66,27 @@ CREATE TABLE leaderboard (
 📊 Large Dataset Setup (Assignment Requirement)
 
 ⚠️ Run manually in PostgreSQL (not auto-run by backend)
+-- 1M users
+INSERT INTO users (username)
+SELECT 'user_' || generate_series(1, 1000000);
+
+-- 5M game sessions
+INSERT INTO game_sessions (user_id, score, game_mode, timestamp)
+SELECT
+  floor(random() * 1000000 + 1)::int,
+  floor(random() * 10000 + 1)::int,
+  CASE WHEN random() > 0.5 THEN 'solo' ELSE 'team' END,
+  NOW() - INTERVAL '1 day' * floor(random() * 365)
+FROM generate_series(1, 5000000);
+
+-- Bootstrap leaderboard
+INSERT INTO leaderboard (user_id, total_score, rank)
+SELECT
+  user_id,
+  SUM(score) AS total_score,
+  RANK() OVER (ORDER BY SUM(score) DESC)
+FROM game_sessions
+GROUP BY user_id;
 
 -- 1M users
 INSERT INTO users (username)
@@ -79,45 +110,32 @@ SELECT
 FROM game_sessions
 GROUP BY user_id;
 
-🔄 Load Simulation (Real User Traffic)
-import requests, random, time
+Indexes used:
 
-API = "http://localhost:8000/api/leaderboard"
+leaderboard(total_score DESC)
 
-while True:
-    uid = random.randint(1, 1000000)
-    requests.post(f"{API}/submit", json={"user_id": uid, "score": random.randint(100, 10000)})
-    requests.get(f"{API}/top")
-    requests.get(f"{API}/rank/{uid}")
-    time.sleep(random.uniform(0.5, 2))
+game_sessions(user_id)
 
 ⚡ Performance & Consistency Design
 🔹 Ranking Strategy
 
 Uses SUM(score) (matches “highest total score” requirement)
 
-Ranks computed via SQL RANK() → supports ties
+SQL RANK() supports ties
 
 🔹 Atomic Writes
 
 Score submission runs in single DB transaction
 
-Uses row-level locks (FOR UPDATE) to prevent race conditions
+Uses row-level locks (FOR UPDATE) to avoid race conditions
 
 🔹 Redis Caching
 
-Top-10 leaderboard cached (TTL 30s)
+Top-10 leaderboard cached (TTL: 30s)
 
 Player rank cached per user
 
 Write operations invalidate affected keys
-
-🔹 Indexing
-
-leaderboard(total_score DESC)
-
-game_sessions(user_id)
-
 📈 Monitoring with New Relic
 
 Integrated New Relic Python APM to track:
@@ -128,42 +146,44 @@ Error rate
 
 Throughput
 
-PostgreSQL & Redis query time
+PostgreSQL query time
 
-Dashboard available in New Relic UI
-![WhatsApp Image 2026-02-13 at 1 51 16 PM](https://github.com/user-attachments/assets/24562374-a979-4250-8c37-c6c1af924b82)
+Redis cache performance
+
+📊 Live dashboards visible in New Relic UI
+![WhatsApp Image 2026-02-13 at 1 51 02 PM](https://github.com/user-attachments/assets/7823ecc5-ecbb-4dea-a5de-b1c6c5e2f816)
+![WhatsApp Image 2026-02-13 at 1 51 16 PM](https://github.com/user-attachments/assets/7feca7f7-059e-4014-8ccd-900eb5f4dd96)
+![WhatsApp Image 2026-02-13 at 1 53 07 PM](https://github.com/user-attachments/assets/73d25f27-09d5-4242-a12c-4991d73851a0)
+
+⚙️ Setup Instructions (Step-by-Step)
+1️⃣ Clone Repository
+
+git clone https://github.com/<your-username>/GameLeaderBoard
+cd GameLeaderBoard-main
+
+2️⃣ Create & Activate Virtual Environment
+python -m venv venv
+
+Windows
+
+venv\Scripts\activate
 
 
-🧪 Testing
-pip install pytest httpx pytest-asyncio
-pytest
+Linux / Mac
+
+source venv/bin/activate
+
+Windows
+
+venv\Scripts\activate
 
 
-Tests validate:
+Linux / Mac
 
-API correctness
-
-Cache hit/miss behavior
-
-Error handling
-
-🖥️ Frontend (React)
-
-Features:
-
-Submit score
-
-Live top-10 leaderboard
-
-Player rank lookup
-
-Auto-refresh every 10 seconds
-
-cd leaderboard-ui
-npm install
-npm start
+source venv/bin/activate
 
 📂 Project Structure
+
 GameLeaderBoard-main/
 ├── main.py
 ├── database.py
@@ -194,3 +214,4 @@ Concurrency handling	✅
 New Relic monitoring	✅
 Frontend UI	✅
 Load simulation	✅
+
